@@ -13,6 +13,17 @@ triggers:
 
 # Performance Check Skill
 
+## Scope
+- Run `git diff --name-only` to get the list of uncommitted changed files
+- If there are no uncommitted changes, stop and inform the user: "No uncommitted changes found. Make some edits first, then run /performance-check."
+- Audit the changed files AND any files directly related to them:
+  - If a `sections/*.liquid` changed → also audit its linked `assets/section-name.css` and `assets/section-name.js`
+  - If an `assets/*.js` or `assets/*.css` changed → also audit the section or snippet that loads it
+  - If `layout/theme.liquid` changed → also audit all globally loaded assets referenced in it
+  - If a `snippets/*.liquid` changed → also audit every file that calls `{% render 'snippet-name' %}`
+  - If a `templates/*.json` changed → also audit the sections referenced inside it
+- Do not expand scope beyond directly related files — stay focused on the change and its immediate dependencies
+
 ## Steps
 
 1. **Check asset loading**
