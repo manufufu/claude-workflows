@@ -89,53 +89,14 @@ Before writing any code, check whether `sections/rich-text.liquid` exists in the
 
 ---
 
-### 3. Resolve asset loading
+### 3. Create the section file
 
-This project uses Vite for asset bundling. **Never use Shopify's `asset_url` filter** to load CSS or JS in section files.
+File goes in `sections/section-name.liquid`. Use the padding pattern resolved in Step 2.
 
-Use `vite-tag-wrapper` instead:
-
-```liquid
-{%- liquid
-  render 'vite-tag-wrapper' with 'css/section-name.css'
-  render 'vite-tag-wrapper' with 'js/section-name.js'
--%}
-```
-
-Omit the JS line if no JS is needed, and omit the CSS line if no CSS is needed.
-
-Source files live in `frontend/entrypoints/` — never write directly to `assets/`:
-
-| Asset type | Source path |
-|------------|-------------|
-| CSS | `frontend/entrypoints/css/section-name.css` |
-| JS | `frontend/entrypoints/js/section-name.js` |
-
-Vite compiles these to `assets/` at build time.
-
-**Wrong:**
 ```liquid
 {{ 'section-name.css' | asset_url | stylesheet_tag }}
-<script src="{{ 'section-name.js' | asset_url }}" defer></script>
-```
 
-**Correct:**
-```liquid
 {%- liquid
-  render 'vite-tag-wrapper' with 'css/section-name.css'
-  render 'vite-tag-wrapper' with 'js/section-name.js'
--%}
-```
-
----
-
-### 4. Create the section file
-
-File goes in `sections/section-name.liquid`. Apply the padding pattern from Step 2 and the asset loading from Step 3.
-
-```liquid
-{%- liquid
-  render 'vite-tag-wrapper' with 'css/section-name.css'
   assign padding_top = section.settings.padding_top
   assign padding_bottom = section.settings.padding_bottom
 -%}
@@ -211,44 +172,40 @@ File goes in `sections/section-name.liquid`. Apply the padding pattern from Step
     }
   ]
 }
-{% endschema %}
 ```
 
 ---
 
-### 5. Create the CSS source file
+### 4. Create the CSS asset
 
-- File goes in `frontend/entrypoints/css/section-name.css` (not `assets/`)
+- File goes in `assets/section-name.css`
 - Use BEM naming: `.section-name__element--modifier`
 - Apply the padding using the same CSS approach copied from `rich-text.liquid` (Step 2)
 - Start mobile-first, add breakpoints with `@media (min-width: ...)`
 
 ---
 
-### 6. Create the JS feature (if needed)
+### 5. Create the JS feature (if needed)
 
 - Invoke the `js-feature` skill — it scaffolds the JS and CSS files, wires them to the section, and starts with a static interactive feature before making it dynamic
-- JS source file belongs in `frontend/entrypoints/js/section-name.js` — the `js-feature` skill must place it there, not in `assets/`
-- Do not manually create the JS file — delegate entirely to `js-feature`
+- Do not manually create `assets/section-name.js` — delegate entirely to `js-feature`
 
 ---
 
-### 7. Register in templates (if needed)
+### 6. Register in templates (if needed)
 
 - For JSON templates, add the section to the relevant `templates/*.json`
 - Confirm `"type": "section-name"` matches the filename exactly
 
 ---
 
-### 8. Validate before finishing
+### 7. Validate the schema
 
-- All `id` values in the schema are unique
-- All `type` values are valid Shopify setting types
-- `presets` is included so the section appears in the theme editor
-- Block `type` values are lowercase with no spaces
-- `padding_top` and `padding_bottom` match the pattern from `rich-text.liquid` (or the default if that file doesn't exist)
-- Asset loading uses `vite-tag-wrapper` — no `asset_url` filter present
-- CSS and JS source files are in `frontend/entrypoints/`, not `assets/`
+- Confirm all `id` values are unique within the schema
+- Ensure `type` values are valid Shopify setting types
+- Check `presets` is included so section appears in theme editor
+- Verify block `type` values are lowercase with no spaces
+- Confirm `padding_top` and `padding_bottom` settings are present and match the pattern from `rich-text.liquid` (or the default if that file doesn't exist)
 
 ---
 
@@ -275,8 +232,6 @@ File goes in `sections/section-name.liquid`. Apply the padding pattern from Step
 ## Notes
 
 - Section filename must be lowercase, hyphenated, no spaces
-- Never use `<script>` or `<style>` tags inside section Liquid — Vite handles asset injection via `vite-tag-wrapper`
-- Never write source files directly to `assets/` — always use `frontend/entrypoints/`
 - Always include `{{ block.shopify_attributes }}` on block elements for theme editor support
 - Always include `id="section-{{ section.id }}"` on the root element for theme editor targeting
 - Always copy the padding pattern from `sections/rich-text.liquid` when it exists — this keeps spacing consistent across all sections in the theme
