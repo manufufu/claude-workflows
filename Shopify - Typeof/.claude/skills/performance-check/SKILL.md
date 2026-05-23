@@ -24,6 +24,36 @@ triggers:
   - If a `templates/*.json` changed → also audit the sections referenced inside it
 - Do not expand scope beyond directly related files — stay focused on the change and its immediate dependencies
 
+## Chrome DevTools MCP
+This skill uses the `chrome-devtools` MCP server for real-browser performance measurement.
+
+**Key tools:**
+| Tool | Use |
+|------|-----|
+| `list_pages` | Find the target tab — always call this first |
+| `select_page` | Switch to the target tab |
+| `list_network_requests` | Inspect asset loading order, sizes, and timing |
+| `get_network_request` | Get full details on a specific asset request |
+| `lighthouse_audit` | Run a Lighthouse audit for performance scores and Core Web Vitals |
+| `performance_start_trace` / `performance_stop_trace` | Record a performance trace during interaction |
+| `performance_analyze_insight` | Analyze the trace for bottlenecks |
+| `take_screenshot` | Capture the visual state |
+
+**Workflow:**
+1. `list_pages` → `select_page` — find the preview tab
+2. `list_network_requests` — inspect what's loading and at what cost
+3. `lighthouse_audit` — get Lighthouse score and Core Web Vitals before filing the report
+4. `take_screenshot` — confirm visual state after any change
+
+**Rules:**
+- Always call `list_pages` first to find the right tab before acting
+- Run `lighthouse_audit` before generating the final report — use the score to calibrate severity
+- After any fix, reload via `navigate_page` and re-run `list_network_requests` to confirm improvement
+
+**Before starting:** Make sure Chrome is open with the dev preview tab active. If MCP is unavailable, use Google PageSpeed Insights or the Chrome DevTools Lighthouse panel manually.
+
+---
+
 ## Steps
 
 1. **Check asset loading**
@@ -31,6 +61,7 @@ triggers:
    - Ensure non-critical JS uses `defer` or `async` attributes
    - Verify CSS is loaded with `rel="preload"` where appropriate
    - Check for unused CSS/JS files in `assets/`
+   - **Via MCP:** `list_pages` → `select_page` → `list_network_requests` — confirm assets load in expected order with no blocking resources; use `get_network_request` to inspect any suspicious large or slow asset
 
 2. **Audit images**
    - Confirm all images use `| image_url` with explicit `width` parameter
@@ -60,7 +91,9 @@ triggers:
    - Verify `{% javascript %}` and `{% stylesheet %}` tags are used inside sections
 
 7. **Generate report**
+   - **Via MCP:** Run `lighthouse_audit` on the preview URL — record the Performance score and Core Web Vitals (LCP, CLS, INP) as the baseline
    - Summarize findings by severity: Critical / Warning / Suggestion
+   - Include the Lighthouse score at the top of the report
    - Provide specific file and line references for each issue
    - Suggest fixes with code examples where applicable
 

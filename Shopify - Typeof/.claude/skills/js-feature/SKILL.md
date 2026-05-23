@@ -27,9 +27,32 @@ Build an interactive JavaScript feature scoped to the active Shopify section —
 ---
 
 ## Chrome DevTools MCP
-This skill uses the `chrome-devtools` MCP server (configured in `.claude/mcp.json`) to verify the feature live in Chrome. Claude can navigate to the preview URL, read the console, evaluate JS in the page, and take screenshots.
+This skill uses the `chrome-devtools` MCP server to verify the feature live in Chrome.
 
-**Before starting:** Make sure Chrome is open and `chrome-devtools` MCP tools are available. If unavailable, follow the manual fallback steps in Step 5.
+**Key tools:**
+| Tool | Use |
+|------|-----|
+| `list_pages` | Find the target tab — always call this first |
+| `select_page` | Switch to the target tab |
+| `navigate_page` | Navigate to or reload the preview URL |
+| `list_console_messages` | Read all console errors and warnings |
+| `evaluate_script` | Verify custom element registration and live state |
+| `take_screenshot` | Capture working state and mobile viewport |
+
+**Workflow:**
+1. `list_pages` → `select_page` — find the preview tab
+2. `navigate_page` — load the page; use `wait_for` before inspecting
+3. `list_console_messages` — check for zero errors
+4. `evaluate_script` — verify feature state
+5. `take_screenshot` — confirm visual result
+
+**Rules:**
+- Always call `list_pages` first to find the right tab before acting
+- Prefer `evaluate_script` over guessing — verify assumptions in the live page
+- After any code change, reload via `navigate_page` and re-check with `list_console_messages`
+- Confirm with `take_screenshot` + `list_console_messages` before reporting done
+
+**Before starting:** Make sure Chrome is open with the dev preview tab active. If unavailable, follow the manual fallback steps in Step 5.
 
 ---
 
@@ -210,18 +233,18 @@ Create `assets/[feature-name].css` — mobile-first, use attribute selectors for
 After saving all files:
 
 1. **Confirm `shopify theme dev` is running** — get the preview URL
-2. **Via MCP:** Navigate to the section's preview URL
+2. `list_pages` → `select_page` — find the preview tab
 3. **Disable cache** — DevTools → Network tab → check "Disable cache"
-4. **Hard reload** the page
-5. **Check Console** — zero errors, zero warnings
-6. **Confirm the custom element registered:**
+4. `navigate_page` — reload the page; use `wait_for` before inspecting
+5. `list_console_messages` — zero errors, zero warnings
+6. `evaluate_script` — confirm the custom element registered:
    ```js
    customElements.get('feature-name') // must return the class, not undefined
    ```
-7. **Trigger the feature** — interact and confirm behavior
-8. **Take a screenshot** — capture working state
-9. **Test mobile viewport** — emulate mobile via MCP and re-verify
-10. **Regression check** — confirm other features on the same page still work
+7. **Trigger the feature** — interact and confirm behavior via `evaluate_script`
+8. `take_screenshot` — capture working state
+9. **Test mobile viewport** — emulate mobile and `take_screenshot` to re-verify
+10. `list_console_messages` again — confirm no regressions on the same page
 
 **Manual fallback** (if MCP is unavailable):
 1. Chrome → `F12` → Network tab → check "Disable cache" → `Ctrl+Shift+R`

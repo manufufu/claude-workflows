@@ -24,13 +24,36 @@ Confirm that a JavaScript feature works correctly in the live dev preview — no
 ---
 
 ## Chrome DevTools MCP
-This skill uses the `chrome-devtools` MCP server (configured in `.claude/mcp.json`) to interact with Chrome directly. Claude can:
-- Navigate to URLs and take screenshots
-- Read the browser console for errors and warnings
-- Evaluate JavaScript in the live page context
-- Monitor network requests
+This skill uses the `chrome-devtools` MCP server to interact with Chrome directly.
 
-**Before starting:** Make sure Chrome is open and the `chrome-devtools` MCP tools are available. If MCP is unavailable or Chrome is not connected, follow the manual fallback steps marked throughout.
+**Key tools:**
+| Tool | Use |
+|------|-----|
+| `list_pages` | Find the target tab — always call this first |
+| `select_page` | Switch to the target tab |
+| `navigate_page` | Navigate to or reload the preview URL |
+| `list_console_messages` | Read all console errors and warnings |
+| `get_console_message` | Get full details on a specific error |
+| `evaluate_script` | Run JS to inspect live page state |
+| `list_network_requests` | Confirm JS files are being served |
+| `get_network_request` | Get details on a specific asset request |
+| `take_screenshot` | Capture the visual state |
+
+**Workflow:**
+1. `list_pages` → find the Shopify preview tab
+2. `select_page` → switch to it
+3. `list_console_messages` → check for errors
+4. `evaluate_script` → verify live state
+5. `take_screenshot` → confirm visual result
+
+**Rules:**
+- Always call `list_pages` first to find the right tab before acting
+- Use `wait_for` after navigation before inspecting the page
+- Prefer `evaluate_script` over guessing — verify assumptions in the live page
+- After any code change, reload via `navigate_page` and re-check with `list_console_messages`
+- If a fix is applied, confirm with `take_screenshot` + `list_console_messages` before reporting done
+
+**Before starting:** Make sure Chrome is open with the dev preview tab active. If MCP is unavailable or Chrome is not connected, follow the manual fallback steps marked throughout.
 
 ---
 
@@ -57,12 +80,13 @@ This skill follows a **fix → verify → retry** loop:
 Before reading or editing anything, confirm the JS file is actually being served to the browser:
 - Check `layout/theme.liquid` for a `<script src="{{ 'filename.js' | asset_url }}" defer></script>` tag
 - If the JS is section-scoped, check the section file for a `{% javascript %}` block or inline `<script>` tag
-- **Via MCP:** Check the Network tab — confirm the JS file appears in requests on the target page
+- **Via MCP:** `list_pages` → `select_page` → `list_network_requests` — confirm the JS file appears in requests on the target page; use `get_network_request` to inspect the response if needed
 - If the file is not loaded at all, add the script tag first before debugging further — this is one of the most common root causes of "function is not defined" errors
 
 ### 3. Read the console errors
-- **Via MCP:** Navigate to the preview URL and read the browser console
+- **Via MCP:** `list_pages` → `select_page` → `navigate_page` to the preview URL → `list_console_messages`
   - Capture all errors, warnings, and uncaught exceptions
+  - Use `get_console_message` to get the full stack trace on any error
   - Note the exact message, file name, and line number for each
 - If MCP is unavailable: ask the user to paste the error from the Chrome DevTools Console tab
 - Ask which interaction triggers the issue (page load, click, scroll, form submit, etc.) if not clear from the error
@@ -121,16 +145,14 @@ Repeat this cycle until the error is resolved or 5 attempts are exhausted. Track
 
 **Verify (via Chrome DevTools MCP):**
 1. **Disable cache** — in DevTools Network tab, enable "Disable cache" (keeps it off while DevTools is open)
-2. **Hard reload** — reload the page to bypass any cached version of the JS file
-3. **Check the Console** — confirm zero JS errors related to the fix
-4. **Evaluate the feature** — run JS in the page to confirm the feature's live state:
+2. `navigate_page` — reload the page to bypass any cached version of the JS file; use `wait_for` before inspecting
+3. `list_console_messages` — confirm zero JS errors related to the fix
+4. `evaluate_script` — confirm the feature's live state:
    ```js
    typeof window.myFeatureInit === 'function'
    ```
-5. **Take a screenshot** — confirm the UI looks and behaves correctly
-6. **Regression check** — evaluate other features on the same page to confirm nothing was broken by the fix:
-   - Check for new errors in the Console that weren't there before
-   - Visually confirm adjacent features (cart, nav, modals, etc.) still function
+5. `take_screenshot` — confirm the UI looks and behaves correctly
+6. **Regression check** — `list_console_messages` again for new errors not present before; `take_screenshot` to visually confirm adjacent features (cart, nav, modals, etc.) still function
 
 **Manual fallback** (if MCP is unavailable):
 1. Open DevTools → Network tab → check "Disable cache"
